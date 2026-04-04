@@ -4,10 +4,9 @@ workflows:
     max_build_duration: 120
     instance_type: mac_mini_m2
     environment:
+      xcode: 16.3
       vars:
         BUNDLE_ID: com.viajandoconjeans.app
-        XCODE_WORKSPACE: ios/viajandoconjeans.xcworkspace
-        XCODE_SCHEME: viajandoconjeans
       groups:
         - ios_signing
     scripts:
@@ -31,6 +30,9 @@ workflows:
           echo "Installed profile $PROFILE_PATH"
       - name: Build IPA
         script: |
+          XCODE_WORKSPACE=$(find ios -name "*.xcworkspace" -maxdepth 1 | head -1)
+          XCODE_SCHEME=$(basename "$XCODE_WORKSPACE" .xcworkspace)
+          echo "Building workspace: $XCODE_WORKSPACE with scheme: $XCODE_SCHEME"
           xcode-project use-profiles
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
