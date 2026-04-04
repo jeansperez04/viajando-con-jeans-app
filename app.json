@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "Viajando con Jeans",
+    "slug": "viajando-con-jeans-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "viajando-con-jeans-app",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#faf8f5"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.viajandoconjeans.app"
+    },
+    "android": {
+      "package": "com.viajandoconjeans.app"
+    },
+    "web": {
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://replit.com/"
+        }
+      ],
+      "expo-font",
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "0472cce6-8388-4869-9095-3c93a1c1d2e6"
+      }
+    },
+    "owner": "jeans04"
+  }
+}
