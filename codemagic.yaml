@@ -13,7 +13,9 @@ workflows:
         XCODE_SCHEME: viajandoconjeans
     scripts:
       - name: Install dependencies
-        script: npm install
+        script: |
+          npm install -g pnpm
+          pnpm install
       - name: Expo prebuild
         script: npx expo prebuild --clean --platform ios --no-install
       - name: Install CocoaPods
