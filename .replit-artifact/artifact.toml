@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/mobile/"
+title = "Viajando con Jeans App"
+version = "1.0.0"
+id = "artifacts/viajando-con-jeans-app"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/mobile/" ]
+localPort = 19237
+
+[services.development]
+run = "pnpm --filter @workspace/viajando-con-jeans-app run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/viajando-con-jeans-app", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/viajando-con-jeans-app", "run", "serve" ]
+
+[services.env]
+PORT = "19237"
+BASE_PATH = "/mobile/"
