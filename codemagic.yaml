@@ -37,23 +37,26 @@ workflows:
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME"
-      - name: Diagnose - list apps via app-store-connect CLI
+      - name: Diagnose and fix - list apps + symlink iTMSTransporter
         script: |
           echo "$ASC_PRIVATE_KEY" | base64 --decode > /tmp/key.pem
-          echo "=== Xcode version ==="
-          xcodebuild -version
-          echo "=== Looking for iTMSTransporter ==="
-          find /Applications/Xcode*.app -name "iTMSTransporter" 2>/dev/null || echo "Not found in Xcode"
-          ls /usr/local/itms/bin/iTMSTransporter 2>/dev/null || echo "Not at /usr/local/itms"
-          echo "=== Listing apps via ASC REST API CLI ==="
-          app-store-connect list-apps \
+          echo "=== app-store-connect apps (lists all apps visible to this API key) ==="
+          app-store-connect apps \
             --api-key "$ASC_KEY_ID" \
             --api-issuer-id "$ASC_ISSUER_ID" \
             --private-key-path /tmp/key.pem 2>&1 || true
-      - name: Submit via altool with API key
+          echo "=== Fixing iTMSTransporter location for altool ==="
+          ITMST_ACTUAL=$(find /Applications/Xcode-16.2.app/Contents/Developer -name "iTMSTransporter" 2>/dev/null | head -1)
+          echo "Actual iTMSTransporter: $ITMST_ACTUAL"
+          sudo mkdir -p /usr/local/itms/bin
+          sudo ln -sf "$ITMST_ACTUAL" /usr/local/itms/bin/iTMSTransporter
+          ls -la /usr/local/itms/bin/iTMSTransporter
+      - name: Submit via altool with API key (iTMSTransporter fixed)
         script: |
           IPA_FILE=$(find build/ios/ipa -name "*.ipa" | head -1)
           echo "Submitting $IPA_FILE..."
+          echo "=== Verify IPA bundle ID ==="
+          unzip -p "$IPA_FILE" 'Payload/*.app/Info.plist' | plutil -p - | grep -A1 CFBundleIdentifier || true
           mkdir -p ~/.appstoreconnect/private_keys
           echo "$ASC_PRIVATE_KEY" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
           xcrun altool --upload-app \
