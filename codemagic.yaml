@@ -37,23 +37,18 @@ workflows:
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME"
-      - name: Submit via iTMSTransporter (bypasses altool bug)
+      - name: Submit to App Store Connect via altool (Apple ID auth)
         script: |
           IPA_FILE=$(find build/ios/ipa -name "*.ipa" | head -1)
-          echo "Submitting $IPA_FILE via iTMSTransporter..."
-          # Place API key where iTMSTransporter expects it
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo "$ASC_PRIVATE_KEY" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
-          echo "Key file created: $(ls -la ~/.appstoreconnect/private_keys/)"
-          # Find iTMSTransporter (inside Xcode's ContentDeliveryServices framework)
-          ITMST=$(find /Applications/Xcode.app -name "iTMSTransporter" -type f 2>/dev/null | head -1)
-          echo "iTMSTransporter: $ITMST"
-          "$ITMST" \
-            -m upload \
+          echo "Submitting $IPA_FILE..."
+          echo "Apple ID: $APP_STORE_CONNECT_APPLE_ID"
+          xcrun altool --upload-app \
             -f "$IPA_FILE" \
-            -apiKey "$ASC_KEY_ID" \
-            -apiIssuer "$ASC_ISSUER_ID" \
-            -t Signiant
+            --type ios \
+            --username "$APP_STORE_CONNECT_APPLE_ID" \
+            --password "$APP_STORE_CONNECT_PASSWORD" \
+            --verbose 2>&1 | tee /tmp/altool_output.txt
+          exit ${PIPESTATUS[0]}
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
