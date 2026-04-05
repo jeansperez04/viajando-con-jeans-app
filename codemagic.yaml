@@ -42,15 +42,13 @@ workflows:
           IPA_FILE=$(find build/ios/ipa -name "*.ipa" | head -1)
           echo "Submitting $IPA_FILE via Fastlane..."
           gem install fastlane --no-document 2>/dev/null || true
-          cat > /tmp/api_key.json << EOF
-          {
-            "key_id": "$ASC_KEY_ID",
-            "issuer_id": "$ASC_ISSUER_ID",
-            "key_content": "$ASC_PRIVATE_KEY",
-            "is_key_content_base64": true,
-            "in_house": false
-          }
-          EOF
+          jq -n \
+            --arg key_id "$ASC_KEY_ID" \
+            --arg issuer_id "$ASC_ISSUER_ID" \
+            --arg key "$ASC_PRIVATE_KEY" \
+            '{key_id: $key_id, issuer_id: $issuer_id, key: $key, is_key_content_base64: true, in_house: false}' \
+            > /tmp/api_key.json
+          cat /tmp/api_key.json | python3 -c "import json,sys; d=json.load(sys.stdin); print('key_id:', d['key_id'], 'issuer_id:', d['issuer_id'])"
           fastlane pilot upload \
             --api_key_path /tmp/api_key.json \
             --ipa "$IPA_FILE" \
