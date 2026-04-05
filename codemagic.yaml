@@ -37,33 +37,32 @@ workflows:
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME"
-      - name: Diagnose and fix - list apps + symlink iTMSTransporter
+      - name: Fix iTMSTransporter + list apps diagnostic
         script: |
-          echo "$ASC_PRIVATE_KEY" | base64 --decode > /tmp/key.pem
-          echo "=== app-store-connect apps (lists all apps visible to this API key) ==="
-          app-store-connect apps \
-            --api-key "$ASC_KEY_ID" \
-            --api-issuer-id "$ASC_ISSUER_ID" \
-            --private-key-path /tmp/key.pem 2>&1 || true
-          echo "=== Fixing iTMSTransporter location for altool ==="
+          # Fix iTMSTransporter for Xcode 16.2
           ITMST_ACTUAL=$(find /Applications/Xcode-16.2.app/Contents/Developer -name "iTMSTransporter" 2>/dev/null | head -1)
           echo "Actual iTMSTransporter: $ITMST_ACTUAL"
           sudo mkdir -p /usr/local/itms/bin
           sudo ln -sf "$ITMST_ACTUAL" /usr/local/itms/bin/iTMSTransporter
           ls -la /usr/local/itms/bin/iTMSTransporter
-      - name: Submit via altool with API key (iTMSTransporter fixed)
+          # List apps via ASC CLI with correct env vars
+          echo "$ASC_PRIVATE_KEY" | base64 --decode > /tmp/key.pem
+          export APP_STORE_CONNECT_KEY_IDENTIFIER="$ASC_KEY_ID"
+          export APP_STORE_CONNECT_ISSUER_ID="$ASC_ISSUER_ID"
+          export APP_STORE_CONNECT_PRIVATE_KEY="$(cat /tmp/key.pem)"
+          echo "=== Listing apps via ASC CLI ==="
+          app-store-connect apps list 2>&1 || true
+      - name: Submit via app-store-connect publish CLI
         script: |
           IPA_FILE=$(find build/ios/ipa -name "*.ipa" | head -1)
-          echo "Submitting $IPA_FILE..."
-          echo "=== Verify IPA bundle ID ==="
-          unzip -p "$IPA_FILE" 'Payload/*.app/Info.plist' | plutil -p - | grep -A1 CFBundleIdentifier || true
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo "$ASC_PRIVATE_KEY" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
-          xcrun altool --upload-app \
-            -f "$IPA_FILE" \
-            --type ios \
-            --apiKey "$ASC_KEY_ID" \
-            --apiIssuer "$ASC_ISSUER_ID" \
+          echo "Submitting $IPA_FILE via app-store-connect publish..."
+          echo "$ASC_PRIVATE_KEY" | base64 --decode > /tmp/key.pem
+          export APP_STORE_CONNECT_KEY_IDENTIFIER="$ASC_KEY_ID"
+          export APP_STORE_CONNECT_ISSUER_ID="$ASC_ISSUER_ID"
+          export APP_STORE_CONNECT_PRIVATE_KEY="$(cat /tmp/key.pem)"
+          app-store-connect publish \
+            --path "$IPA_FILE" \
+            --type IOS \
             --verbose 2>&1
     artifacts:
       - build/ios/ipa/*.ipa
