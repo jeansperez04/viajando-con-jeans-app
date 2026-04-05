@@ -4,7 +4,7 @@ workflows:
     max_build_duration: 120
     instance_type: mac_mini_m2
     environment:
-      xcode: 15.4
+      xcode: 16.2
       vars:
         BUNDLE_ID: com.viajandoconjeans.app
       groups:
@@ -37,18 +37,25 @@ workflows:
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME"
-      - name: Submit via altool with API key (Xcode 15.4 + iTMSTransporter)
+      - name: Diagnose - list apps via app-store-connect CLI
+        script: |
+          echo "$ASC_PRIVATE_KEY" | base64 --decode > /tmp/key.pem
+          echo "=== Xcode version ==="
+          xcodebuild -version
+          echo "=== Looking for iTMSTransporter ==="
+          find /Applications/Xcode*.app -name "iTMSTransporter" 2>/dev/null || echo "Not found in Xcode"
+          ls /usr/local/itms/bin/iTMSTransporter 2>/dev/null || echo "Not at /usr/local/itms"
+          echo "=== Listing apps via ASC REST API CLI ==="
+          app-store-connect list-apps \
+            --api-key "$ASC_KEY_ID" \
+            --api-issuer-id "$ASC_ISSUER_ID" \
+            --private-key-path /tmp/key.pem 2>&1 || true
+      - name: Submit via altool with API key
         script: |
           IPA_FILE=$(find build/ios/ipa -name "*.ipa" | head -1)
-          echo "Submitting $IPA_FILE via altool (Xcode 15.4)..."
-          # Verify iTMSTransporter is present in Xcode 15.4
-          ITMST=$(find /Applications/Xcode-15.4.app -name "iTMSTransporter" 2>/dev/null | head -1)
-          echo "iTMSTransporter: $ITMST"
-          # Place API key where altool expects it
+          echo "Submitting $IPA_FILE..."
           mkdir -p ~/.appstoreconnect/private_keys
           echo "$ASC_PRIVATE_KEY" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
-          ls -la ~/.appstoreconnect/private_keys/
-          # Upload using API key auth (uses iTMSTransporter internally in Xcode 15.4)
           xcrun altool --upload-app \
             -f "$IPA_FILE" \
             --type ios \
