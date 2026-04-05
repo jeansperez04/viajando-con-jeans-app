@@ -41,10 +41,13 @@ workflows:
         script: |
           IPA_FILE=$(find build/ios/ipa -name "*.ipa" | head -1)
           echo "Submitting $IPA_FILE via Fastlane..."
-          # Fix OpenSSL P-256 curve name issue on macOS 15 (LibreSSL incompatibility)
-          OPENSSL_DIR=$(brew --prefix openssl@3)
-          gem install openssl -- --with-openssl-dir="$OPENSSL_DIR" 2>&1 | tail -3
           gem install fastlane --no-document 2>&1 | tail -3
+          # Patch Fastlane token.rb: replace deprecated OpenSSL::PKey::EC.new with OpenSSL::PKey.read
+          # This fixes "invalid curve name" on OpenSSL 3.x (macOS 15)
+          TOKEN_RB=$(find ~/.rbenv -name "token.rb" -path "*/spaceship/connect_api/*" 2>/dev/null | head -1)
+          echo "Patching: $TOKEN_RB"
+          sed -i 's/OpenSSL::PKey::EC\.new(raw_key)/OpenSSL::PKey.read(raw_key)/g' "$TOKEN_RB"
+          grep -n "OpenSSL::PKey" "$TOKEN_RB" | head -5
           # Decode and prepare the key
           echo "$ASC_PRIVATE_KEY" | base64 --decode > /tmp/key.pem
           jq -n \
