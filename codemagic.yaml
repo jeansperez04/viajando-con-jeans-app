@@ -7,6 +7,7 @@ workflows:
       xcode: 16.3
       vars:
         BUNDLE_ID: com.viajandoconjeans.app
+        APPLE_TEAM_ID: 5NFLTZ6PD8
       groups:
         - ios_signing
     scripts:
@@ -37,15 +38,22 @@ workflows:
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME"
+      - name: Submit to App Store Connect
+        script: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$ASC_PRIVATE_KEY" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          IPA_FILE=$(find build/ios/ipa -name "*.ipa" | head -1)
+          echo "Submitting $IPA_FILE"
+          xcrun altool --upload-app \
+            -f "$IPA_FILE" \
+            -t ios \
+            --apiKey "$ASC_KEY_ID" \
+            --apiIssuer "$ASC_ISSUER_ID" \
+            --asc-provider "$APPLE_TEAM_ID" \
+            --verbose
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
-      app_store_connect:
-        api_key: $CONNECT_API_KEY
-        key_id: $ASC_KEY_ID
-        issuer_id: $ASC_ISSUER_ID
-        submit_to_testflight: true
-        submit_to_app_store: false
       email:
         recipients:
           - jeansperez04@gmail.com
