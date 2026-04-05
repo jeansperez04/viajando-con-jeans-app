@@ -39,13 +39,15 @@ workflows:
             --scheme "$XCODE_SCHEME"
       - name: Submit to App Store Connect
         script: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$ASC_PRIVATE_KEY" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
           IPA_FILE=$(find build/ios/ipa -name "*.ipa" | head -1)
           echo "Submitting $IPA_FILE to App Store Connect..."
           xcrun altool --upload-app \
             -f "$IPA_FILE" \
             -t ios \
-            -u "$APP_STORE_CONNECT_APPLE_ID" \
-            -p "$APP_STORE_CONNECT_PASSWORD" \
+            --apiKey "$ASC_KEY_ID" \
+            --apiIssuer "$ASC_ISSUER_ID" \
             --verbose
     artifacts:
       - build/ios/ipa/*.ipa
