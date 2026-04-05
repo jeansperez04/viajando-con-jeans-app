@@ -43,12 +43,12 @@ workflows:
           echo "$ASC_PRIVATE_KEY" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
           IPA_FILE=$(find build/ios/ipa -name "*.ipa" | head -1)
           echo "Submitting $IPA_FILE to App Store Connect..."
-          xcrun altool --upload-app \
-            -f "$IPA_FILE" \
-            -t ios \
-            --apiKey "$ASC_KEY_ID" \
-            --apiIssuer "$ASC_ISSUER_ID" \
-            --verbose
+          app-store-connect publish \
+            --api-key "$ASC_KEY_ID" \
+            --issuer-id "$ASC_ISSUER_ID" \
+            --private-key "@file:$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8" \
+            --path "$IPA_FILE" \
+            --platform IOS
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
