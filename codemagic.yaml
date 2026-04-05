@@ -4,7 +4,7 @@ workflows:
     max_build_duration: 120
     instance_type: mac_mini_m2
     environment:
-      xcode: 16.3
+      xcode: 15.4
       vars:
         BUNDLE_ID: com.viajandoconjeans.app
       groups:
@@ -37,43 +37,24 @@ workflows:
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME"
-      - name: Diagnose App Store Connect access
-        script: |
-          pip3 install PyJWT cryptography --quiet 2>/dev/null
-          echo "$ASC_PRIVATE_KEY" | base64 --decode > /tmp/key.pem
-          python3 << 'PYEOF'
-          import jwt, time, urllib.request, json
-          key = open('/tmp/key.pem').read()
-          import os
-          key_id = os.environ['ASC_KEY_ID']
-          issuer_id = os.environ['ASC_ISSUER_ID']
-          payload = {'iss': issuer_id, 'iat': int(time.time()), 'exp': int(time.time()) + 1200, 'aud': 'appstoreconnect-v1'}
-          token = jwt.encode(payload, key, algorithm='ES256', headers={'kid': key_id})
-          req = urllib.request.Request('https://api.appstoreconnect.apple.com/v1/apps?limit=20', headers={'Authorization': f'Bearer {token}'})
-          try:
-            with urllib.request.urlopen(req) as r:
-              data = json.loads(r.read())
-              apps = data.get('data', [])
-              print(f'Found {len(apps)} apps in App Store Connect:')
-              for a in apps:
-                print(f"  - {a['attributes']['name']} | bundle: {a['attributes']['bundleId']} | id: {a['id']}")
-              if not apps:
-                print('NO APPS FOUND - the API key may not have access to any apps')
-          except Exception as e:
-            print(f'REST API call failed: {e}')
-          PYEOF
-      - name: Submit to App Store Connect via altool (Apple ID auth)
+      - name: Submit via altool with API key (Xcode 15.4 + iTMSTransporter)
         script: |
           IPA_FILE=$(find build/ios/ipa -name "*.ipa" | head -1)
-          echo "Submitting $IPA_FILE..."
-          echo "Apple ID: $APP_STORE_CONNECT_APPLE_ID"
+          echo "Submitting $IPA_FILE via altool (Xcode 15.4)..."
+          # Verify iTMSTransporter is present in Xcode 15.4
+          ITMST=$(find /Applications/Xcode-15.4.app -name "iTMSTransporter" 2>/dev/null | head -1)
+          echo "iTMSTransporter: $ITMST"
+          # Place API key where altool expects it
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$ASC_PRIVATE_KEY" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          ls -la ~/.appstoreconnect/private_keys/
+          # Upload using API key auth (uses iTMSTransporter internally in Xcode 15.4)
           xcrun altool --upload-app \
             -f "$IPA_FILE" \
             --type ios \
-            --username "$APP_STORE_CONNECT_APPLE_ID" \
-            --password "$APP_STORE_CONNECT_PASSWORD" \
-            --verbose 2>&1 | tee /tmp/altool_output.txt
-          exit ${PIPESTATUS[0]}
+            --apiKey "$ASC_KEY_ID" \
+            --apiIssuer "$ASC_ISSUER_ID" \
+            --verbose 2>&1
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
