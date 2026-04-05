@@ -37,17 +37,15 @@ workflows:
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME"
-      - name: Submit to App Store Connect
-        script: |
-          IPA_FILE=$(find build/ios/ipa -name "*.ipa" | head -1)
-          echo "Submitting $IPA_FILE to App Store Connect..."
-          export APP_STORE_CONNECT_KEY_IDENTIFIER="$ASC_KEY_ID"
-          export APP_STORE_CONNECT_ISSUER_ID="$ASC_ISSUER_ID"
-          export APP_STORE_CONNECT_PRIVATE_KEY="$(echo "$ASC_PRIVATE_KEY" | base64 --decode)"
-          app-store-connect publish --path "$IPA_FILE"
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
+      app_store_connect:
+        api_key: $CONNECT_API_KEY
+        key_id: $ASC_KEY_ID
+        issuer_id: $ASC_ISSUER_ID
+        submit_to_testflight: true
+        submit_to_app_store: false
       email:
         recipients:
           - jeansperez04@gmail.com
