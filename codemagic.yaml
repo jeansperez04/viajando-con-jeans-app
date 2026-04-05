@@ -41,15 +41,16 @@ workflows:
         script: |
           IPA_FILE=$(find build/ios/ipa -name "*.ipa" | head -1)
           echo "Submitting $IPA_FILE via Fastlane..."
-          gem install fastlane --no-document 2>/dev/null || true
-          # Decode key and convert PKCS8 -> EC PEM (fixes OpenSSL curve name issue on macOS 15)
-          echo "$ASC_PRIVATE_KEY" | base64 --decode > /tmp/pkcs8.pem
-          openssl pkey -in /tmp/pkcs8.pem -out /tmp/ec_key.pem
-          # Build JSON with actual PEM content (not base64)
+          # Fix OpenSSL P-256 curve name issue on macOS 15 (LibreSSL incompatibility)
+          OPENSSL_DIR=$(brew --prefix openssl@3)
+          gem install openssl -- --with-openssl-dir="$OPENSSL_DIR" 2>&1 | tail -3
+          gem install fastlane --no-document 2>&1 | tail -3
+          # Decode and prepare the key
+          echo "$ASC_PRIVATE_KEY" | base64 --decode > /tmp/key.pem
           jq -n \
             --arg key_id "$ASC_KEY_ID" \
             --arg issuer_id "$ASC_ISSUER_ID" \
-            --rawfile key /tmp/ec_key.pem \
+            --rawfile key /tmp/key.pem \
             '{key_id: $key_id, issuer_id: $issuer_id, key: $key, in_house: false}' \
             > /tmp/api_key.json
           python3 -c "import json; d=json.load(open('/tmp/api_key.json')); print('key_id:', d['key_id'])"
