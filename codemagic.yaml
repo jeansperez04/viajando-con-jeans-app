@@ -37,32 +37,23 @@ workflows:
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME"
-      - name: Submit to App Store Connect via Fastlane
+      - name: Submit via iTMSTransporter (bypasses altool bug)
         script: |
           IPA_FILE=$(find build/ios/ipa -name "*.ipa" | head -1)
-          echo "Submitting $IPA_FILE via Fastlane..."
-          gem install fastlane --no-document 2>&1 | tail -3
-          # Patch Fastlane token.rb: replace deprecated OpenSSL::PKey::EC.new with OpenSSL::PKey.read
-          # This fixes "invalid curve name" on macOS 15 with LibreSSL
-          TOKEN_RB=$(find ~/.rbenv -name "token.rb" -path "*/spaceship/connect_api/*" 2>/dev/null | head -1)
-          echo "Patching: $TOKEN_RB"
-          # macOS sed requires empty string after -i; pattern uses 'key' not 'raw_key'
-          sed -i '' 's/OpenSSL::PKey::EC\.new(key)/OpenSSL::PKey.read(key)/g' "$TOKEN_RB"
-          grep -n "OpenSSL::PKey" "$TOKEN_RB" | head -5
-          # Decode and prepare the key
-          echo "$ASC_PRIVATE_KEY" | base64 --decode > /tmp/key.pem
-          jq -n \
-            --arg key_id "$ASC_KEY_ID" \
-            --arg issuer_id "$ASC_ISSUER_ID" \
-            --rawfile key /tmp/key.pem \
-            '{key_id: $key_id, issuer_id: $issuer_id, key: $key, in_house: false}' \
-            > /tmp/api_key.json
-          python3 -c "import json; d=json.load(open('/tmp/api_key.json')); print('key_id:', d['key_id'])"
-          fastlane pilot upload \
-            --api_key_path /tmp/api_key.json \
-            --ipa "$IPA_FILE" \
-            --skip_waiting_for_build_processing true \
-            --skip_submission true
+          echo "Submitting $IPA_FILE via iTMSTransporter..."
+          # Place API key where iTMSTransporter expects it
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$ASC_PRIVATE_KEY" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          echo "Key file created: $(ls -la ~/.appstoreconnect/private_keys/)"
+          # Find iTMSTransporter (inside Xcode's ContentDeliveryServices framework)
+          ITMST=$(find /Applications/Xcode.app -name "iTMSTransporter" -type f 2>/dev/null | head -1)
+          echo "iTMSTransporter: $ITMST"
+          "$ITMST" \
+            -m upload \
+            -f "$IPA_FILE" \
+            -apiKey "$ASC_KEY_ID" \
+            -apiIssuer "$ASC_ISSUER_ID" \
+            -t Signiant
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
