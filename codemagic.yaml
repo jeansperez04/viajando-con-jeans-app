@@ -44,11 +44,10 @@ workflows:
           IPA_FILE=$(find build/ios/ipa -name "*.ipa" | head -1)
           echo "Submitting $IPA_FILE to App Store Connect..."
           app-store-connect publish \
-            --api-key "$ASC_KEY_ID" \
+            --key-identifier "$ASC_KEY_ID" \
             --issuer-id "$ASC_ISSUER_ID" \
             --private-key "@file:$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8" \
-            --path "$IPA_FILE" \
-            --platform IOS
+            --path "$IPA_FILE"
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
