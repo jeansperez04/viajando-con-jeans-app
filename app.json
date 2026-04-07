@@ -15,10 +15,10 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.viajandoconjeans.app"
+      "bundleIdentifier": "app.replit.viajandoconjeans"
     },
     "android": {
-      "package": "com.viajandoconjeans.app"
+      "package": "app.replit.viajandoconjeans"
     },
     "web": {
       "favicon": "./assets/images/icon.png"
