@@ -6,7 +6,7 @@ workflows:
     environment:
       xcode: 16.2
       vars:
-        BUNDLE_ID: com.viajandoconjeans.app
+        BUNDLE_ID: app.replit.viajandoconjeans
       groups:
         - ios_signing
     scripts:
@@ -37,32 +37,23 @@ workflows:
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME"
-      - name: Fix iTMSTransporter + list apps diagnostic
+      - name: Fix iTMSTransporter symlink
         script: |
-          # Fix iTMSTransporter for Xcode 16.2
           ITMST_ACTUAL=$(find /Applications/Xcode-16.2.app/Contents/Developer -name "iTMSTransporter" 2>/dev/null | head -1)
-          echo "Actual iTMSTransporter: $ITMST_ACTUAL"
+          echo "iTMSTransporter found at: $ITMST_ACTUAL"
           sudo mkdir -p /usr/local/itms/bin
           sudo ln -sf "$ITMST_ACTUAL" /usr/local/itms/bin/iTMSTransporter
           ls -la /usr/local/itms/bin/iTMSTransporter
-          # List apps via ASC CLI with correct env vars
-          echo "$ASC_PRIVATE_KEY" | base64 --decode > /tmp/key.pem
-          export APP_STORE_CONNECT_KEY_IDENTIFIER="$ASC_KEY_ID"
-          export APP_STORE_CONNECT_ISSUER_ID="$ASC_ISSUER_ID"
-          export APP_STORE_CONNECT_PRIVATE_KEY="$(cat /tmp/key.pem)"
-          echo "=== Listing apps via ASC CLI ==="
-          app-store-connect apps list 2>&1 || true
-      - name: Submit via app-store-connect publish CLI
+      - name: Submit to App Store
         script: |
           IPA_FILE=$(find build/ios/ipa -name "*.ipa" | head -1)
-          echo "Submitting $IPA_FILE via app-store-connect publish..."
+          echo "Submitting: $IPA_FILE"
           echo "$ASC_PRIVATE_KEY" | base64 --decode > /tmp/key.pem
           export APP_STORE_CONNECT_KEY_IDENTIFIER="$ASC_KEY_ID"
           export APP_STORE_CONNECT_ISSUER_ID="$ASC_ISSUER_ID"
           export APP_STORE_CONNECT_PRIVATE_KEY="$(cat /tmp/key.pem)"
           app-store-connect publish \
             --path "$IPA_FILE" \
-            --type IOS \
             --verbose 2>&1
     artifacts:
       - build/ios/ipa/*.ipa
