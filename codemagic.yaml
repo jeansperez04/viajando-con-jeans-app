@@ -37,21 +37,23 @@ workflows:
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME"
-      - name: Fix iTMSTransporter symlink
-        script: |
-          ITMST_ACTUAL=$(find /Applications/Xcode-16.2.app/Contents/Developer -name "iTMSTransporter" 2>/dev/null | head -1)
-          sudo mkdir -p /usr/local/itms/bin
-          sudo ln -sf "$ITMST_ACTUAL" /usr/local/itms/bin/iTMSTransporter
       - name: Submit to App Store
         script: |
           IPA_FILE=$(find build/ios/ipa -name "*.ipa" | head -1)
           echo "Submitting: $IPA_FILE"
-          echo "$ASC_PRIVATE_KEY" | base64 --decode > /tmp/key.pem
-          export APP_STORE_CONNECT_KEY_IDENTIFIER="$ASC_KEY_ID"
-          export APP_STORE_CONNECT_ISSUER_ID="$ASC_ISSUER_ID"
-          export APP_STORE_CONNECT_PRIVATE_KEY="$(cat /tmp/key.pem)"
-          app-store-connect publish \
-            --path "$IPA_FILE" \
+          # Place the p8 key where xcrun altool expects it
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$ASC_PRIVATE_KEY" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          # Fix iTMSTransporter path
+          ITMST=$(find /Applications/Xcode-16.2.app/Contents/Developer -name "iTMSTransporter" 2>/dev/null | head -1)
+          sudo mkdir -p /usr/local/itms/bin
+          sudo ln -sf "$ITMST" /usr/local/itms/bin/iTMSTransporter
+          # Upload via altool
+          xcrun altool --upload-app \
+            -f "$IPA_FILE" \
+            -t ios \
+            --apiKey "$ASC_KEY_ID" \
+            --apiIssuer "$ASC_ISSUER_ID" \
             --verbose 2>&1
     artifacts:
       - build/ios/ipa/*.ipa
