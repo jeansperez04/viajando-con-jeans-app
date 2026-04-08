@@ -16,34 +16,23 @@ workflows:
         script: npx expo prebuild --clean --platform ios --no-install
       - name: Install CocoaPods
         script: cd ios && pod install
-      - name: Set up automatic code signing
+      - name: Set up keychain
         script: |
-          echo "$ASC_PRIVATE_KEY" | base64 --decode > /tmp/key.pem
-          export APP_STORE_CONNECT_KEY_IDENTIFIER="$ASC_KEY_ID"
-          export APP_STORE_CONNECT_ISSUER_ID="$ASC_ISSUER_ID"
-          export APP_STORE_CONNECT_PRIVATE_KEY="$(cat /tmp/key.pem)"
-          echo "=== Fetching signing files automatically ==="
-          app-store-connect fetch-signing-files \
-            --type IOS_APP_STORE \
-            --bundle-identifier "$BUNDLE_ID" \
-            --create \
-            --verbose 2>&1
-          echo "=== Setting up keychain with fetched certificate ==="
           keychain initialize
-          app-store-connect list-certificates \
-            --type IOS_DISTRIBUTION \
-            --save \
-            --verbose 2>&1 || true
-          app-store-connect list-certificates \
-            --type DISTRIBUTION \
-            --save \
-            --verbose 2>&1 || true
+          echo $CM_CERTIFICATE | base64 --decode > /tmp/certificate.p12
+          keychain add-certificates --certificate /tmp/certificate.p12 --certificate-password $CM_CERTIFICATE_PASSWORD
+      - name: Set up provisioning profile
+        script: |
+          PROFILES_HOME="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$PROFILES_HOME"
+          PROFILE_PATH="$(mktemp "$PROFILES_HOME"/XXXXXX.mobileprovision)"
+          echo $CM_PROVISIONING_PROFILE | base64 --decode > "$PROFILE_PATH"
+          echo "Installed profile: $PROFILE_PATH"
+          security cms -D -i "$PROFILE_PATH" | plutil -p - | grep -E 'application-identifier|Name|TeamName' | head -5
       - name: Build IPA
         script: |
           XCODE_WORKSPACE=$(find ios -name "*.xcworkspace" -maxdepth 1 | head -1)
           XCODE_SCHEME=$(basename "$XCODE_WORKSPACE" .xcworkspace)
-          echo "=== Bundle ID in project ==="
-          grep PRODUCT_BUNDLE_IDENTIFIER ios/*.xcodeproj/project.pbxproj | head -3
           xcode-project use-profiles
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
