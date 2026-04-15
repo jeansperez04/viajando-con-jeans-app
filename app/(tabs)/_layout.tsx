@@ -6,14 +6,11 @@ import { Tabs, useRouter } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
 import React from "react";
-import { Linking, Platform, Pressable, StyleSheet, Text, View, useColorScheme } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View, useColorScheme } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
 
 const HERO_COLORS: [string, string, string, string] = ["#0d6e91", "#0fb3cc", "#4caf78", "#d4a96a"];
-
-const WA_URL =
-  "https://wa.me/17867635035?text=Hola%2C%20me%20gustar%C3%ADa%20obtener%20m%C3%A1s%20informaci%C3%B3n%20sobre%20sus%20paquetes%20de%20viaje.";
 
 function RoundTabButton({
   label,
@@ -26,7 +23,6 @@ function RoundTabButton({
   onPress: () => void;
   active?: boolean;
 }) {
-  const colors = useColors();
   return (
     <Pressable
       onPress={onPress}
@@ -70,8 +66,16 @@ function NativeTabLayout() {
         <Label>Inicio</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="explore">
-        <Icon sf={{ default: "message.fill", selected: "message.fill" }} />
-        <Label>WhatsApp</Label>
+        <Icon sf={{ default: "magnifyingglass", selected: "magnifyingglass" }} />
+        <Label>Buscar</Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="services">
+        <Icon sf={{ default: "calendar.badge.plus", selected: "calendar.badge.plus" }} />
+        <Label>Reservar</Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="favorites">
+        <Icon sf={{ default: "heart", selected: "heart.fill" }} />
+        <Label>Favoritos</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
@@ -127,19 +131,53 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          title: "WhatsApp",
+          title: "Buscar",
           tabBarButton: () => (
             <RoundTabButton
-              label="WhatsApp"
-              icon={<FontAwesome5 name="whatsapp" size={22} color="#fff" />}
-              onPress={() => Linking.openURL(WA_URL)}
+              label="Buscar"
+              icon={
+                isIOS
+                  ? <SymbolView name="magnifyingglass" tintColor="#fff" size={22} />
+                  : <Ionicons name="search" size={22} color="#fff" />
+              }
+              onPress={() => router.push("/(tabs)/explore")}
             />
           ),
         }}
       />
       <Tabs.Screen
         name="services"
-        options={{ href: null }}
+        options={{
+          title: "Reservar",
+          tabBarButton: () => (
+            <RoundTabButton
+              label="Reservar"
+              icon={
+                isIOS
+                  ? <SymbolView name="calendar.badge.plus" tintColor="#fff" size={22} />
+                  : <Ionicons name="calendar" size={22} color="#fff" />
+              }
+              onPress={() => router.push("/(tabs)/services")}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="favorites"
+        options={{
+          title: "Favoritos",
+          tabBarButton: () => (
+            <RoundTabButton
+              label="Favoritos"
+              icon={
+                isIOS
+                  ? <SymbolView name="heart.fill" tintColor="#fff" size={22} />
+                  : <Ionicons name="heart" size={22} color="#fff" />
+              }
+              onPress={() => router.push("/(tabs)/favorites")}
+            />
+          ),
+        }}
       />
     </Tabs>
   );
