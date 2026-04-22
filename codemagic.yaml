@@ -72,8 +72,12 @@ workflows:
             CODE_SIGN_IDENTITY="Apple Distribution" \
             | xcpretty
 
+          # Get the provisioning profile UUID from the installed profile
+          PROFILE_UUID=$(security cms -D -i "$HOME/Library/MobileDevice/Provisioning Profiles/"*.mobileprovision 2>/dev/null | plutil -extract UUID raw - 2>/dev/null | head -1)
+          echo "Using profile UUID: $PROFILE_UUID"
+
           # Export options plist — uploads directly to App Store Connect
-          cat > /tmp/ExportOptions.plist << 'EOF'
+          cat > /tmp/ExportOptions.plist << EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -86,6 +90,11 @@ workflows:
             <string>5NFLTZ6PD8</string>
             <key>signingStyle</key>
             <string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>app.replit.viajandoconjeans</key>
+              <string>${PROFILE_UUID}</string>
+            </dict>
             <key>uploadBitcode</key>
             <false/>
             <key>compileBitcode</key>
