@@ -33,10 +33,32 @@ workflows:
       - name: Set up API key
         script: |
           mkdir -p ~/.appstoreconnect/private_keys
-          echo "$ASC_PRIVATE_KEY" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
-          ls -la ~/.appstoreconnect/private_keys/
-          echo "Key head:"
-          head -1 ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          KEY_PATH=~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+
+          # Try base64 decode first
+          echo "$ASC_PRIVATE_KEY" | base64 -D > "$KEY_PATH" 2>/dev/null
+          FIRST_LINE=$(head -1 "$KEY_PATH" 2>/dev/null)
+          LAST_LINE=$(tail -1 "$KEY_PATH" 2>/dev/null)
+          SIZE=$(wc -c < "$KEY_PATH" 2>/dev/null | tr -d ' ')
+
+          # If file doesn't look like a valid PEM, try raw write
+          if [[ "$FIRST_LINE" != "-----BEGIN PRIVATE KEY-----" ]] || [[ "$LAST_LINE" != "-----END PRIVATE KEY-----" ]] || [[ "$SIZE" -lt 200 ]]; then
+            echo "base64 -D produced invalid key (size=$SIZE, last=$LAST_LINE), trying raw write..."
+            printf '%s' "$ASC_PRIVATE_KEY" > "$KEY_PATH"
+            FIRST_LINE=$(head -1 "$KEY_PATH")
+            LAST_LINE=$(tail -1 "$KEY_PATH")
+            SIZE=$(wc -c < "$KEY_PATH" | tr -d ' ')
+          fi
+
+          echo "Key size: $SIZE bytes"
+          echo "Key first line: $FIRST_LINE"
+          echo "Key last line: $LAST_LINE"
+
+          if [[ "$FIRST_LINE" != "-----BEGIN PRIVATE KEY-----" ]] || [[ "$LAST_LINE" != "-----END PRIVATE KEY-----" ]]; then
+            echo "ERROR: Key file is invalid!"
+            exit 1
+          fi
+          echo "Key is valid PEM."
       - name: Build and upload to App Store
         script: |
           XCODE_WORKSPACE=$(find ios -name "*.xcworkspace" -maxdepth 1 | head -1)
