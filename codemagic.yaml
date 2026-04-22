@@ -35,27 +35,21 @@ workflows:
           mkdir -p ~/.appstoreconnect/private_keys
           KEY_PATH=~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
 
-          # Try base64 decode first
+          # Decode the base64 key
           echo "$ASC_PRIVATE_KEY" | base64 -D > "$KEY_PATH" 2>/dev/null
-          FIRST_LINE=$(head -1 "$KEY_PATH" 2>/dev/null)
-          LAST_LINE=$(tail -1 "$KEY_PATH" 2>/dev/null)
-          SIZE=$(wc -c < "$KEY_PATH" 2>/dev/null | tr -d ' ')
 
-          # If file doesn't look like a valid PEM, try raw write
-          if [[ "$FIRST_LINE" != "-----BEGIN PRIVATE KEY-----" ]] || [[ "$LAST_LINE" != "-----END PRIVATE KEY-----" ]] || [[ "$SIZE" -lt 200 ]]; then
-            echo "base64 -D produced invalid key (size=$SIZE, last=$LAST_LINE), trying raw write..."
-            printf '%s' "$ASC_PRIVATE_KEY" > "$KEY_PATH"
-            FIRST_LINE=$(head -1 "$KEY_PATH")
-            LAST_LINE=$(tail -1 "$KEY_PATH")
-            SIZE=$(wc -c < "$KEY_PATH" | tr -d ' ')
-          fi
+          # Strip leading/trailing whitespace from every line (fixes malformed PEM markers)
+          sed -i '' 's/^[[:space:]]*//;s/[[:space:]]*$//' "$KEY_PATH"
 
-          echo "Key size: $SIZE bytes"
-          echo "Key first line: $FIRST_LINE"
-          echo "Key last line: $LAST_LINE"
+          SIZE=$(wc -c < "$KEY_PATH" | tr -d ' ')
+          FIRST_LINE=$(head -1 "$KEY_PATH")
+          LAST_LINE=$(tail -1 "$KEY_PATH")
+
+          echo "Key size: ${SIZE} bytes"
+          echo "Key valid: first=[${FIRST_LINE}] last=[${LAST_LINE}]"
 
           if [[ "$FIRST_LINE" != "-----BEGIN PRIVATE KEY-----" ]] || [[ "$LAST_LINE" != "-----END PRIVATE KEY-----" ]]; then
-            echo "ERROR: Key file is invalid!"
+            echo "ERROR: Key PEM markers invalid after cleanup"
             exit 1
           fi
           echo "Key is valid PEM."
