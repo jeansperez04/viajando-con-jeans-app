@@ -61,6 +61,10 @@ function RoundTabButton({
 function NativeTabLayout() {
   return (
     <NativeTabs>
+      <NativeTabs.Trigger name="services">
+        <Icon sf={{ default: "calendar.badge.plus", selected: "calendar.badge.plus" }} />
+        <Label>Reservar</Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="index">
         <Icon sf={{ default: "house", selected: "house.fill" }} />
         <Label>Inicio</Label>
@@ -69,9 +73,9 @@ function NativeTabLayout() {
         <Icon sf={{ default: "magnifyingglass", selected: "magnifyingglass" }} />
         <Label>Buscar</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="services">
-        <Icon sf={{ default: "calendar.badge.plus", selected: "calendar.badge.plus" }} />
-        <Label>Reservar</Label>
+      <NativeTabs.Trigger name="trips">
+        <Icon sf={{ default: "map", selected: "map.fill" }} />
+        <Label>Mis Viajes</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="favorites">
         <Icon sf={{ default: "heart", selected: "heart.fill" }} />
@@ -112,6 +116,23 @@ function ClassicTabLayout() {
       }}
     >
       <Tabs.Screen
+        name="services"
+        options={{
+          title: "Reservar",
+          tabBarButton: () => (
+            <RoundTabButton
+              label="Reservar"
+              icon={
+                isIOS
+                  ? <SymbolView name="calendar.badge.plus" tintColor="#fff" size={22} />
+                  : <Ionicons name="calendar" size={22} color="#fff" />
+              }
+              onPress={() => router.push("/(tabs)/services")}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="index"
         options={{
           title: "Inicio",
@@ -146,18 +167,18 @@ function ClassicTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="services"
+        name="trips"
         options={{
-          title: "Reservar",
+          title: "Mis Viajes",
           tabBarButton: () => (
             <RoundTabButton
-              label="Reservar"
+              label="Mis Viajes"
               icon={
                 isIOS
-                  ? <SymbolView name="calendar.badge.plus" tintColor="#fff" size={22} />
-                  : <Ionicons name="calendar" size={22} color="#fff" />
+                  ? <SymbolView name="map.fill" tintColor="#fff" size={20} />
+                  : <Ionicons name="map" size={22} color="#fff" />
               }
-              onPress={() => router.push("/(tabs)/services")}
+              onPress={() => router.push("/(tabs)/trips")}
             />
           ),
         }}
