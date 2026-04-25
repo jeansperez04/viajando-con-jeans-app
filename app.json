@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "app.replit.viajandoconjeans",
-      "buildNumber": "3"
+      "buildNumber": "4"
     },
     "android": {
       "package": "app.replit.viajandoconjeans"
