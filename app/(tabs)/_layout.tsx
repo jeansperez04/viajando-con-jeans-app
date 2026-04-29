@@ -1,9 +1,7 @@
-import { FontAwesome5, Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
-import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { LinearGradient } from "expo-linear-gradient";
 import { Tabs, useRouter } from "expo-router";
-import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
 import React from "react";
 import { Platform, Pressable, StyleSheet, Text, View, useColorScheme } from "react-native";
@@ -12,16 +10,18 @@ import { useColors } from "@/hooks/useColors";
 
 const HERO_COLORS: [string, string, string, string] = ["#0d6e91", "#0fb3cc", "#4caf78", "#d4a96a"];
 
+const isIOS = Platform.OS === "ios";
+const isIPad = Platform.OS === "ios" && Platform.isPad;
+const isWeb = Platform.OS === "web";
+
 function RoundTabButton({
   label,
   icon,
   onPress,
-  active,
 }: {
   label: string;
   icon: React.ReactNode;
   onPress: () => void;
-  active?: boolean;
 }) {
   return (
     <Pressable
@@ -58,39 +58,96 @@ function RoundTabButton({
   );
 }
 
-function NativeTabLayout() {
-  return (
-    <NativeTabs>
-      <NativeTabs.Trigger name="services">
-        <Icon sf={{ default: "calendar.badge.plus", selected: "calendar.badge.plus" }} />
-        <Label>Reservar</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="index">
-        <Icon sf={{ default: "house", selected: "house.fill" }} />
-        <Label>Inicio</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="explore">
-        <Icon sf={{ default: "magnifyingglass", selected: "magnifyingglass" }} />
-        <Label>Buscar</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="trips">
-        <Icon sf={{ default: "map", selected: "map.fill" }} />
-        <Label>Mis Viajes</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="favorites">
-        <Icon sf={{ default: "heart", selected: "heart.fill" }} />
-        <Label>Favoritos</Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
-  );
-}
-
-function ClassicTabLayout() {
+function IPadTabLayout() {
   const colors = useColors();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const isIOS = Platform.OS === "ios";
-  const isWeb = Platform.OS === "web";
+
+  return (
+    <Tabs
+      screenOptions={{
+        tabBarActiveTintColor: "#0d6e91",
+        tabBarInactiveTintColor: colors.mutedForeground,
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: "transparent",
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          elevation: 0,
+          height: 60,
+        },
+        tabBarBackground: () => (
+          <BlurView
+            intensity={80}
+            tint={isDark ? "dark" : "light"}
+            style={StyleSheet.absoluteFill}
+          />
+        ),
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: "600",
+          marginBottom: 6,
+        },
+      }}
+    >
+      <Tabs.Screen
+        name="services"
+        options={{
+          title: "Reservar",
+          tabBarIcon: ({ color, size }) =>
+            isIOS
+              ? <SymbolView name="calendar.badge.plus" tintColor={color} size={size} />
+              : <Ionicons name="calendar-outline" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "Inicio",
+          tabBarIcon: ({ color, size, focused }) =>
+            isIOS
+              ? <SymbolView name={focused ? "house.fill" : "house"} tintColor={color} size={size} />
+              : <Ionicons name={focused ? "home" : "home-outline"} size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="explore"
+        options={{
+          title: "Buscar",
+          tabBarIcon: ({ color, size }) =>
+            isIOS
+              ? <SymbolView name="magnifyingglass" tintColor={color} size={size} />
+              : <Ionicons name="search-outline" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="trips"
+        options={{
+          title: "Mis Viajes",
+          tabBarIcon: ({ color, size, focused }) =>
+            isIOS
+              ? <SymbolView name={focused ? "map.fill" : "map"} tintColor={color} size={size} />
+              : <Ionicons name={focused ? "map" : "map-outline"} size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="favorites"
+        options={{
+          title: "Favoritos",
+          tabBarIcon: ({ color, size, focused }) =>
+            isIOS
+              ? <SymbolView name={focused ? "heart.fill" : "heart"} tintColor={color} size={size} />
+              : <Ionicons name={focused ? "heart" : "heart-outline"} size={size} color={color} />,
+        }}
+      />
+    </Tabs>
+  );
+}
+
+function PhoneTabLayout() {
+  const colors = useColors();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
 
   return (
@@ -205,8 +262,8 @@ function ClassicTabLayout() {
 }
 
 export default function TabLayout() {
-  if (isLiquidGlassAvailable()) {
-    return <NativeTabLayout />;
+  if (isIPad) {
+    return <IPadTabLayout />;
   }
-  return <ClassicTabLayout />;
+  return <PhoneTabLayout />;
 }
