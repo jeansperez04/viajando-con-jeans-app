@@ -11,7 +11,8 @@ import { useColors } from "@/hooks/useColors";
 const HERO_COLORS: [string, string, string, string] = ["#0d6e91", "#0fb3cc", "#4caf78", "#d4a96a"];
 
 const isIOS = Platform.OS === "ios";
-const isIPad = Platform.OS === "ios" && Platform.isPad;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const isIPad: boolean = Platform.OS === "ios" ? !!((Platform as any).isPad) : false;
 const isWeb = Platform.OS === "web";
 
 function RoundTabButton({
